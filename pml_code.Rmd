@@ -1,0 +1,77 @@
+---
+title: "Practical ML Project"
+author: "Jaysha"
+date: "May 20, 2019"
+output: html_document
+---
+
+# Model Explanation/Report
+1. How I built my model:
+   See code above. After removing columns that contained mostly blank or missing values, used a 
+   random forest to build classifier.
+2. How I used cross validation:
+   See code above. Used cross validation by splitting the training set into training and test. 
+   Used the trainControl() method to perform more cross-validation on the training subset to
+   improve model performance.
+3. What I think the expected out of sample error is:
+   My model achieved a 0.9982 accuracy. I expected the out of sample accuracy to be lower and 
+   therefore the error to be larger. 
+4. Why you made the choices you did:
+   Some of the columns were categorical and I thought a random forest could handle both
+   categorical and numeric data. 
+
+# Code
+Load dependencies
+```{r, eval=FALSE}
+library(tidyverse)
+library(caret)
+```
+
+It turns out that many of the columns are composed of mostly blank or missing values. 
+```{r, eval=FALSE}
+miss_data = c()   
+for (col in colnames(data)){
+  if (anyNA(data[col])) {
+    miss_data = c(miss_data, col)
+    print(col)
+    print(sum(is.na(data[col])))
+  }
+}
+```
+
+We're going to get rid of those mostly empty columns.
+```{r, eval = FALSE}
+data_sub = data[,-which(names(data) %in% miss_data)]
+data_sub = data_sub[, -grep("^kurtosis|^skewness|^amplitude|^max_yaw|^min_yaw|^raw_timestamp|^cvtd_time|X|new_window", colnames(data_sub))]
+```
+
+We're going to create training and test sets using the caret package.
+```{r, eval=FALSE}
+set.seed(123)
+training.samples <- data_sub$classe %>%
+  createDataPartition(p = 0.8, list = FALSE)
+train.data  <- data_sub[training.samples, ]
+test.data <- data_sub[-training.samples, ]
+```
+
+We're going to train a random forest model using cross validation
+```{r, eval=FALSE}
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+model <- train(classe ~., data = train.data, method = "rf",
+               trControl = train.control)
+# Summarize the results
+print(model)
+```
+
+We're going to test the model.
+```{r, eval=FALSE}
+predictions <- model %>% predict(test.data)
+```
+
+How did we do?
+```{r, eval=FALSE}
+confusionMatrix(table(predictions, test.data$classe))
+```
+# ![](<file path> confuMat.PNG)
+
